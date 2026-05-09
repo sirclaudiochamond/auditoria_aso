@@ -2,56 +2,61 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# --- CONFIGURACIÓN E INTERFAZ VISUAL ---
+# --- CONFIGURACIÓN TÉCNICA Y ESTÉTICA ---
 st.set_page_config(page_title="ASO Master - Auditoría de Salud", layout="wide")
 
+# CSS Optimizado para "Zero-Scroll" en fase de cuestionario
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
     
+    /* Eliminar paddings de Streamlit para ganar espacio vertical */
+    .block-container { padding-top: 1rem !important; padding-bottom: 0rem !important; }
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcfcfd; }
     
-    /* Contenedor de Pregunta */
+    /* Card de Pregunta Compacta */
     .main-card {
         background-color: white;
-        padding: 40px;
-        border-radius: 30px;
+        padding: 25px 35px;
+        border-radius: 24px;
         border: 1px solid #f1f5f9;
-        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
-        margin-bottom: 20px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+        margin-bottom: 10px;
     }
     
-    .question-number { color: #3b82f6; font-weight: 800; font-size: 1.1rem; margin-bottom: 5px; }
-    .question-text { font-size: 2.2rem; font-weight: 700; color: #0f172a; line-height: 1.2; margin-bottom: 30px; }
-
-    /* Alternativas Responsive: Botones Verticales Grandes */
-    div.stRadio > div {
-        flex-direction: column !important; /* Organización vertical sencilla y responsive */
-        gap: 12px;
+    .question-number { color: #3b82f6; font-weight: 800; font-size: 1rem; margin-bottom: 2px; }
+    .question-text { 
+        font-size: 1.9rem; /* Ajustado para caber sin scroll */
+        font-weight: 700; 
+        color: #0f172a; 
+        line-height: 1.1; 
+        margin-bottom: 20px; 
     }
+
+    /* Alternativas Verticales Compactas */
+    div.stRadio > div { flex-direction: column !important; gap: 8px; }
     
     label[data-baseweb="radio"] {
         background-color: #ffffff;
-        padding: 22px 25px !important;
-        border-radius: 18px !important;
+        padding: 12px 20px !important; /* Más delgado para ahorrar espacio */
+        border-radius: 14px !important;
         border: 2px solid #f1f5f9 !important;
-        width: 100%; /* Ocupa todo el ancho en cel y pc */
+        width: 100%;
         transition: all 0.2s ease;
     }
 
-    label[data-baseweb="radio"]:hover {
-        border-color: #3b82f6 !important;
-        background-color: #f0f7ff !important;
-    }
-
-    /* Ocultar el círculo nativo del radio para que parezca un botón */
-    div[data-testid="stMarkdownContainer"] p { font-size: 1.3rem !important; font-weight: 600; }
+    label[data-baseweb="radio"]:hover { border-color: #3b82f6 !important; background-color: #f0f7ff !important; }
+    div[data-testid="stMarkdownContainer"] p { font-size: 1.1rem !important; font-weight: 600; }
     
-    .landing-title { font-size: 3.5rem; font-weight: 800; color: #1e3a8a; letter-spacing: -0.04em; }
+    .landing-title { font-size: 3rem; font-weight: 800; color: #1e3a8a; letter-spacing: -0.04em; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- DEFINICIONES Y METADATOS ---
+# Basado en la metodología de Auditoría de Salud Organizacional
 definiciones = {
     "Exigencias Psicológicas": "Mide la presión de tiempo, la velocidad requerida y el volumen de tareas que deben procesarse simultáneamente.",
     "Control y Autonomía": "Evalúa el margen de decisión que tiene sobre su agenda y la posibilidad de aplicar sus conocimientos en su puesto.",
@@ -70,6 +75,7 @@ dimensiones = {
     "Loops Neuropsicológicos": {"rango": range(41, 51), "inv": []}
 }
 
+# Texto íntegro de las 50 preguntas
 preguntas_texto = {
     1: "Siento que la velocidad exigida en mis tareas supera habitualmente mi capacidad de respuesta.",
     2: "La distribución de mis labores suele ser irregular, generando 'cuellos de botella'.",
@@ -130,12 +136,12 @@ if 'respuestas' not in st.session_state: st.session_state.respuestas = {}
 # --- 1. LANDING PAGE ---
 if st.session_state.paso == 'landing':
     st.markdown('<h1 class="landing-title">Auditoría ASO Master</h1>', unsafe_allow_html=True)
-    col_l, col_r = st.columns([1.5, 1], gap="large")
+    col_l, col_r = st.columns([1.5, 1], gap="medium")
     with col_l:
         st.markdown('<div class="main-card">', unsafe_allow_html=True)
         st.markdown("### ¿Para qué sirve esta evaluación?")
         st.write("""
-        Esta herramienta busca entender cómo la forma en que está organizado su trabajo diario influye en su energía y bienestar.
+        Esta herramienta busca entender cómo la forma en que está organizado su trabajo diario influye en su energía y bienestar. 
         El objetivo no es evaluarlo a usted personalmente, sino identificar bloqueos en el diseño del sistema que puedan estar 
         generando cansancio excesivo o dificultando su labor. Al responder, nos ayuda a proponer mejoras concretas que faciliten 
         su día a día, restauren la productividad y protejan su salud mental.
@@ -151,7 +157,7 @@ if st.session_state.paso == 'landing':
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. CUESTIONARIO VERTICAL RESPONSIVE ---
+# --- 2. CUESTIONARIO COMPACTO (ZERO-SCROLL) ---
 elif st.session_state.paso == 'evaluando':
     idx = len(st.session_state.respuestas) + 1
     if idx <= 50:
@@ -160,7 +166,6 @@ elif st.session_state.paso == 'evaluando':
         st.markdown(f'<p class="question-number">Pregunta {idx} de 50</p>', unsafe_allow_html=True)
         st.markdown(f'<p class="question-text">{preguntas_texto[idx]}</p>', unsafe_allow_html=True)
         
-        # Radio vertical automático para máxima compatibilidad móvil
         res = st.radio(
             "Su nivel de acuerdo:",
             options=[5, 4, 3, 2, 1],
@@ -177,10 +182,11 @@ elif st.session_state.paso == 'evaluando':
         st.session_state.paso = 'reporte'
         st.rerun()
 
-# --- 3. REPORTE INTEGRAL UNIFICADO ---
+# --- 3. REPORTE INTEGRAL ---
 elif st.session_state.paso == 'reporte':
     st.header("📊 Informe Integral de Salud Organizacional")
     
+    # Lógica de Inversión basada en la Metodología ASO Master
     promedios = {}
     for nom, info in dimensiones.items():
         vals = [st.session_state.respuestas[i] for i in info["rango"]]
@@ -221,12 +227,13 @@ elif st.session_state.paso == 'reporte':
 
     st.divider()
     
+    # Hipótesis y Plan de Acción basados en Metodología ASO
     st.write("### Conclusión y Hoja de Ruta")
     exig = promedios["Exigencias Psicológicas"]
     loop = promedios["Loops Neuropsicológicos"]
     
     if exig >= 3.5 and loop >= 3.5:
-        st.error("**Situación Detectada: Saturación Sistémica.** El volumen de tareas ha sobrepasado la capacidad de recuperación natural. Esto genera 'Loops' de cansancio donde, a pesar del esfuerzo, la sensación de avance disminuye.")
+        st.error("**Situación Detectada: Saturación Sistémica.** El volumen de tareas ha sobrepasado la capacidad de recuperación natural. Esto genera 'Loops' de cansancio donde la sensación de avance disminuye.")
     elif exig >= 3.5:
         st.warning("**Situación Detectada: Sobrecarga Operativa.** La demanda es alta, pero el sistema aún no colapsa. Es el momento preventivo ideal.")
     else:
