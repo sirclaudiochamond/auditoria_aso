@@ -2,10 +2,35 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# Configuración de Rigidez Metodológica ASO 2026
-st.set_page_config(page_title="ASO Master - Diagnóstico Profundo", layout="wide")
+# --- CONFIGURACIÓN DE MARCA Y ESTILO ---
+st.set_page_config(page_title="ASO Master - Auditoría Neuro-Sistémica", layout="wide")
 
-# --- LÓGICA DE DATOS Y DIMENSIONES ---
+# Inyección de CSS para legibilidad y dinamismo
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+    
+    html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
+    
+    .main { background-color: #fcfcfd; }
+    .stProgress > div > div > div > div { background-color: #3b82f6; }
+    
+    /* Card de pregunta */
+    .question-card {
+        background-color: white;
+        padding: 40px;
+        border-radius: 24px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+    
+    .instruction-text { color: #6b7280; font-size: 1.1rem; }
+    .header-title { color: #1e3a8a; font-weight: 800; font-size: 2.8rem; margin-bottom: 0.5rem; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- BASE DE CONOCIMIENTO (50 ÍTEMS) ---
 dimensiones = {
     "Exigencias Psicológicas": {"rango": range(1, 9), "inv": []},
     "Control y Autonomía": {"rango": range(9, 17), "inv": range(9, 17)},
@@ -68,96 +93,139 @@ preguntas_texto = {
     50: "¿Te sientes emocionalmente agotado antes de interactuar con colegas?"
 }
 
-# --- ESTADO DE SESIÓN ---
-if 'respuestas' not in st.session_state:
-    st.session_state.respuestas = {}
-if 'paso' not in st.session_state:
-    st.session_state.paso = 'inicio'
+# --- ESTADO DE NAVEGACIÓN ---
+if 'paso' not in st.session_state: st.session_state.paso = 'landing'
+if 'respuestas' not in st.session_state: st.session_state.respuestas = {}
 
-# --- INTERFAZ ---
-if st.session_state.paso == 'inicio':
-    st.title("🛡️ Auditoría ASO: Diagnóstico Profundo")
-    st.write("Bienvenido al sistema de evaluación neuro-sistémica Claudio Chamond. Este diagnóstico evalúa la infraestructura de su salud organizacional.")
-    if st.button("Iniciar Evaluación"):
-        st.session_state.paso = 'evaluando'
-        st.rerun()
+# --- 1. LANDING PAGE ---
+if st.session_state.paso == 'landing':
+    st.markdown('<h1 class="header-title">Proyecto ASO Master</h1>', unsafe_allow_html=True)
+    st.markdown('### Auditoría de Salud Organizacional (Versión 2026)')
+    
+    col_l, col_r = st.columns([1, 1], gap="large")
+    
+    with col_l:
+        st.info("**Propósito Metodológico**")
+        st.write("""
+        Esta auditoría no es una encuesta de clima tradicional. Es un escáner de precisión que utiliza 
+        **neurobiología aplicada** para detectar fallos sistémicos en el entorno de trabajo.[cite: 1, 2]
+        
+        Evaluamos 50 puntos críticos que determinan si su equipo está operando en 
+        **Eficiencia Cognitiva** o en **Modo Supervivencia**.
+        """)
+        
+        st.success("**Instrucciones de Respuesta**")
+        st.write("""
+        1. **Sinceridad técnica**: Responda según su realidad operativa diaria.
+        2. **Escala**: 1 es 'Totalmente en desacuerdo' y 5 es 'Totalmente de acuerdo'.
+        3. **Tiempo**: El proceso toma aproximadamente 8-10 minutos.
+        """)
 
+    with col_r:
+        st.markdown("### El Modelo ASO")
+        st.markdown("""
+        - **6 Dimensiones Críticas**: Desde carga mental hasta loops de agotamiento.
+        - **Punto de Corte de Riesgo**: $\\bar{X} \\geq 3.5$.[cite: 1]
+        - **Metodología 60/40**: El diagnóstico define el foco de la capacitación.[cite: 2]
+        """)
+        if st.button("Iniciar Evaluación Ahora", use_container_width=True, type="primary"):
+            st.session_state.paso = 'evaluando'
+            st.rerun()
+
+# --- 2. CUESTIONARIO DINÁMICO ---
 elif st.session_state.paso == 'evaluando':
     idx = len(st.session_state.respuestas) + 1
+    
     if idx <= 50:
+        # Barra de progreso dinámica
         st.progress(idx / 50)
-        st.subheader(preguntas_texto[idx])
-        res = st.radio("Respuesta:", [5, 4, 3, 2, 1], 
-                       format_func=lambda x: {5:"Totalmente de acuerdo", 4:"De acuerdo", 3:"Neutral", 2:"En desacuerdo", 1:"Totalmente en desacuerdo"}[x],
-                       horizontal=True, key=f"p{idx}")
-        if st.button("Siguiente"):
-            st.session_state.respuestas[idx] = res
-            st.rerun()
+        
+        # Identificar Dimensión
+        dim_actual = next(nom for nom, info in dimensiones.items() if idx in info["rango"])
+        
+        st.markdown(f"**Dimensión actual:** {dim_actual}")
+        
+        # Card de Pregunta
+        with st.container():
+            st.markdown(f"""<div class="question-card">
+                <p class="instruction-text">Pregunta {idx} de 50</p>
+                <h2 style="font-size: 1.8rem; margin-bottom: 2rem;">{preguntas_texto[idx]}</h2>
+                </div>""", unsafe_allow_html=True)
+            
+            res = st.select_slider(
+                "Mueva el control hacia su nivel de acuerdo:",
+                options=[1, 2, 3, 4, 5],
+                format_func=lambda x: {1:"Totalmente en desacuerdo", 2:"En desacuerdo", 3:"Neutral", 4:"De acuerdo", 5:"Totalmente de acuerdo"}[x],
+                key=f"slider_{idx}"
+            )
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("Confirmar y Siguiente", use_container_width=True):
+                st.session_state.respuestas[idx] = res
+                st.rerun()
     else:
         st.session_state.paso = 'reporte'
         st.rerun()
 
+# --- 3. REPORTE DIAGNÓSTICO PROFUNDO ---
 elif st.session_state.paso == 'reporte':
-    st.header("📊 Reporte de Salud Organizacional (Perfil 360°)")
+    st.header("📊 Resultado del Diagnóstico de Salud Organizacional")
     
-    # Procesamiento con Lógica de Inversión[cite: 1]
-    resultados = []
-    dict_promedios = {}
+    # Lógica de Inversión $S_{final} = 6 - S_{raw}$[cite: 1, 2]
+    promedios = {}
     for nom, info in dimensiones.items():
         vals = [st.session_state.respuestas[i] for i in info["rango"]]
         vals_adj = [6 - v if i in info["inv"] else v for i, v in zip(info["rango"], vals)]
-        prom = sum(vals_adj) / len(vals_adj)
-        dict_promedios[nom] = prom
-        estado = "CRÍTICO 🔴" if prom >= 3.5 else "ESTABLE 🟢" # Punto de corte 3.5[cite: 1]
-        resultados.append({"Dimensión": nom, "Puntaje": round(prom, 2), "Estado": estado})
+        promedios[nom] = sum(vals_adj) / len(vals_adj)
 
-    df = pd.DataFrame(resultados)
+    df = pd.DataFrame([{"Dimensión": k, "Puntaje": round(v, 2), 
+                        "Estado": "RIESGO 🔴" if v >= 3.5 else "ESTABLE 🟢"} 
+                       for k, v in promedios.items()])
+
+    # Visualización SaaS
+    col_chart, col_data = st.columns([1.5, 1])
+    with col_chart:
+        fig = px.line_polar(df, r='Puntaje', theta='Dimensión', line_close=True, range_r=[0,5],
+                            template="plotly_white", title="Ecosistema de Riesgo Sistémico")
+        fig.update_traces(fill='toself', line_color='#1e3a8a')
+        st.plotly_chart(fig, use_container_width=True)
     
-    # --- VISUALIZACIÓN ---
-    col1, col2 = st.columns([1, 1.5])
-    with col1:
-        st.table(df)
-    with col2:
-        fig = px.line_polar(df, r='Puntaje', theta='Dimensión', line_close=True, range_r=[0,5], title="Ecosistema Sistémico")
-        st.plotly_chart(fig)
+    with col_data:
+        st.write("### Resumen Técnico")
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
     st.divider()
 
-    # --- SECCIÓN: PARA EL COLABORADOR (Feedback Empático/Neuro) ---
-    st.subheader("💡 Mi Estado: Autoconocimiento")
-    exp_col = st.expander("Haz clic para comprender tu situación actual", expanded=True)
-    with exp_col:
-        if dict_promedios["Loops Neuropsicológicos"] >= 3.5:
-            st.warning("**Saturación de Señal:** Tu cerebro está operando en 'modo emergencia'. La sensación de que el trabajo no termina al salir indica que tu sistema de recuperación está bloqueado por la alta demanda.")
-        if dict_promedios["Exigencias Psicológicas"] >= 3.5:
-            st.write("- **Carga Cognitiva:** Estás procesando un volumen de información que supera el umbral de eficiencia, lo que genera fatiga prefrontal.")
-        if dict_promedios["Control y Autonomía"] < 3.5:
-            st.write("- **Autonomía:** Posees margen de decisión, lo cual es un factor protector, aunque la carga actual dificulta su ejercicio.")
-        else:
-            st.error("- **Rigidez en el Rol:** Te sientes atrapado en procedimientos que no puedes modificar, aumentando la sensación de indefensión.")
+    # BLOQUE DE DIAGNÓSTICO PROFUNDO[cite: 1, 2]
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        st.markdown("#### 🧠 Para el Colaborador")
+        with st.container():
+            p_loops = promedios["Loops Neuropsicológicos"]
+            if p_loops >= 3.5:
+                st.warning(f"**Alerta de Saturación ({p_loops}):** Su sistema nervioso indica dificultad para 'cerrar' el ciclo laboral. Esto suele manifestarse como rumiación mental y fatiga al despertar.")
+            else:
+                st.success("Su sistema de recuperación neuro-cognitiva se mantiene funcional.")
+            
+            p_vida = promedios["Vida Personal"]
+            if p_vida >= 3.5:
+                st.error(f"**Interferencia Crítica ({p_vida}):** Existe un desborde del trabajo hacia su espacio vital. Es urgente aplicar protocolos de desconexión efectiva.")
 
-    # --- SECCIÓN: PARA EL EVALUADOR (Análisis Clínico/Metodológico) ---
-    st.subheader("🔍 Análisis para el Evaluador (Claudio Chamond)")
-    exp_eval = st.expander("Variables Técnicas e Hipótesis Diagnóstica", expanded=True)
-    with exp_eval:
-        # Cruce de Variables para Hipótesis
-        exig = dict_promedios["Exigencias Psicológicas"]
-        loop = dict_promedios["Loops Neuropsicológicos"]
-        ctrl = dict_promedios["Control y Autonomía"]
+    with c2:
+        st.markdown("#### 🔍 Para el Evaluador (Claudio Chamond)")
+        exig = promedios["Exigencias Psicológicas"]
+        ctrl = promedios["Control y Autonomía"]
         
-        st.write("### Hipótesis Diagnóstica:")
-        if exig >= 3.5 and loop >= 3.5 and ctrl < 3.5:
-            st.error("**Saturación Sistémica por Carga Excesiva:** El colaborador presenta una alta demanda con alta autonomía, pero el volumen ha colapsado la función ejecutiva, activando Loops de rumiación. No es un problema de competencias, es un problema de caudal de tareas.")
-        elif exig >= 3.5 and ctrl >= 3.5:
-            st.error("**Tensión Laboral (Job Strain):** Escenario de alto riesgo. La combinación de alta demanda y bajo control es el predictor número uno de patología por estrés crónico.")
+        # Hipótesis basada en Job Strain[cite: 1]
+        if exig >= 3.5 and ctrl >= 3.5:
+            st.error("**Hipótesis: Job Strain Extremo.** Combinación de alta demanda y bajo control. Riesgo inminente de burnout e incremento de licencias médicas.")
+        elif exig >= 3.5 and ctrl < 3.5:
+            st.warning("**Hipótesis: Saturación Sistémica.** El volumen de tareas ha colapsado la autonomía. Se requiere intervención estructural en procesos.")
         else:
-            st.success("**Sistema en Equilibrio Dinámico:** No se observan bloqueos neuro-sistémicos significativos.")
+            st.success("**Estado: Equilibrio Dinámico.** El sistema de trabajo es demandante pero sostenible.")
 
-        st.write("### Plan de Intervención (Metodología 60/40):")
-        st.write(f"- **60% Estructural:** Sesiones de recuperación neuro-cognitiva para desactivar Loops (ACT/Mindfulness).")
-        st.write(f"- **40% Focalizado:** Intervención en los procesos de la dimensión: **{df.loc[df['Puntaje'].idxmax(), 'Dimensión']}**.")
-
-    if st.button("Reiniciar Evaluación"):
+    if st.button("Reiniciar Auditoría"):
         st.session_state.respuestas = {}
-        st.session_state.paso = 'inicio'
+        st.session_state.paso = 'landing'
         st.rerun()
