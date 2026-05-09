@@ -1,23 +1,21 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import urllib.parse
 
 # --- CONFIGURACIÓN TÉCNICA Y ESTÉTICA ---
 st.set_page_config(page_title="ASO Master - Auditoría de Salud", layout="wide")
 
-# CSS Optimizado para "Zero-Scroll" en fase de cuestionario
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
     
-    /* Eliminar paddings de Streamlit para ganar espacio vertical */
     .block-container { padding-top: 1rem !important; padding-bottom: 0rem !important; }
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcfcfd; }
     
-    /* Card de Pregunta Compacta */
     .main-card {
         background-color: white;
         padding: 25px 35px;
@@ -29,19 +27,18 @@ st.markdown("""
     
     .question-number { color: #3b82f6; font-weight: 800; font-size: 1rem; margin-bottom: 2px; }
     .question-text { 
-        font-size: 1.9rem; /* Ajustado para caber sin scroll */
+        font-size: 1.9rem; 
         font-weight: 700; 
         color: #0f172a; 
         line-height: 1.1; 
         margin-bottom: 20px; 
     }
 
-    /* Alternativas Verticales Compactas */
     div.stRadio > div { flex-direction: column !important; gap: 8px; }
     
     label[data-baseweb="radio"] {
         background-color: #ffffff;
-        padding: 12px 20px !important; /* Más delgado para ahorrar espacio */
+        padding: 12px 20px !important; 
         border-radius: 14px !important;
         border: 2px solid #f1f5f9 !important;
         width: 100%;
@@ -56,7 +53,6 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- DEFINICIONES Y METADATOS ---
-# Basado en la metodología de Auditoría de Salud Organizacional
 definiciones = {
     "Exigencias Psicológicas": "Mide la presión de tiempo, la velocidad requerida y el volumen de tareas que deben procesarse simultáneamente.",
     "Control y Autonomía": "Evalúa el margen de decisión que tiene sobre su agenda y la posibilidad de aplicar sus conocimientos en su puesto.",
@@ -75,7 +71,6 @@ dimensiones = {
     "Loops Neuropsicológicos": {"rango": range(41, 51), "inv": []}
 }
 
-# Texto íntegro de las 50 preguntas
 preguntas_texto = {
     1: "Siento que la velocidad exigida en mis tareas supera habitualmente mi capacidad de respuesta.",
     2: "La distribución de mis labores suele ser irregular, generando 'cuellos de botella'.",
@@ -132,6 +127,7 @@ preguntas_texto = {
 # --- ESTADO DE SESIÓN ---
 if 'paso' not in st.session_state: st.session_state.paso = 'landing'
 if 'respuestas' not in st.session_state: st.session_state.respuestas = {}
+if 'organizacion' not in st.session_state: st.session_state.organizacion = ""
 
 # --- 1. LANDING PAGE ---
 if st.session_state.paso == 'landing':
@@ -139,6 +135,9 @@ if st.session_state.paso == 'landing':
     col_l, col_r = st.columns([1.5, 1], gap="medium")
     with col_l:
         st.markdown('<div class="main-card">', unsafe_allow_html=True)
+        st.markdown("### Datos de la Evaluación")
+        st.session_state.organizacion = st.text_input("Nombre de la Organización:", placeholder="Ej: Clínica Salud Integral")
+        
         st.markdown("### ¿Para qué sirve esta evaluación?")
         st.write("""
         Esta herramienta busca entender cómo la forma en que está organizado su trabajo diario influye en su energía y bienestar. 
@@ -152,12 +151,16 @@ if st.session_state.paso == 'landing':
         st.markdown("### Instrucciones")
         st.write("- Elija la opción que mejor refleje su realidad operativa actual.")
         st.write("- Sea sincero: sus respuestas son la base para proponer cambios reales.")
+        
         if st.button("Comenzar Evaluación", use_container_width=True, type="primary"):
-            st.session_state.paso = 'evaluando'
-            st.rerun()
+            if st.session_state.organizacion:
+                st.session_state.paso = 'evaluando'
+                st.rerun()
+            else:
+                st.warning("Por favor, ingrese el nombre de la organización para continuar.")
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. CUESTIONARIO COMPACTO (ZERO-SCROLL) ---
+# --- 2. CUESTIONARIO ---
 elif st.session_state.paso == 'evaluando':
     idx = len(st.session_state.respuestas) + 1
     if idx <= 50:
@@ -184,9 +187,8 @@ elif st.session_state.paso == 'evaluando':
 
 # --- 3. REPORTE INTEGRAL ---
 elif st.session_state.paso == 'reporte':
-    st.header("📊 Informe Integral de Salud Organizacional")
+    st.header(f"📊 Informe Integral de Salud Organizacional - {st.session_state.organizacion}")
     
-    # Lógica de Inversión basada en la Metodología ASO Master
     promedios = {}
     for nom, info in dimensiones.items():
         vals = [st.session_state.respuestas[i] for i in info["rango"]]
@@ -214,7 +216,6 @@ elif st.session_state.paso == 'reporte':
 
     st.markdown('<div class="main-card">', unsafe_allow_html=True)
     st.write("## Análisis Detallado de Resultados")
-    st.write("Este informe integra la visión técnica y personal para comprender la dinámica de trabajo actual.")
 
     for index, row in df.iterrows():
         with st.expander(f"{row['Dimensión']} ({row['Estado']})", expanded=True):
@@ -227,25 +228,46 @@ elif st.session_state.paso == 'reporte':
 
     st.divider()
     
-    # Hipótesis y Plan de Acción basados en Metodología ASO
-    st.write("### Conclusión y Hoja de Ruta")
+    # --- CONCLUSIÓN Y ENVÍO POR CORREO ---
     exig = promedios["Exigencias Psicológicas"]
     loop = promedios["Loops Neuropsicológicos"]
+    conclusion = ""
     
     if exig >= 3.5 and loop >= 3.5:
-        st.error("**Situación Detectada: Saturación Sistémica.** El volumen de tareas ha sobrepasado la capacidad de recuperación natural. Esto genera 'Loops' de cansancio donde la sensación de avance disminuye.")
+        conclusion = "Situación Detectada: Saturación Sistémica. El volumen de tareas ha sobrepasado la capacidad de recuperación natural."
     elif exig >= 3.5:
-        st.warning("**Situación Detectada: Sobrecarga Operativa.** La demanda es alta, pero el sistema aún no colapsa. Es el momento preventivo ideal.")
+        conclusion = "Situación Detectada: Sobrecarga Operativa. La demanda es alta, pero el sistema aún no colapsa."
     else:
-        st.success("**Situación Detectada: Estabilidad Operativa.** El diseño de tareas es coherente con la capacidad instalada del equipo.")
+        conclusion = "Situación Detectada: Estabilidad Operativa. El diseño de tareas es coherente."
 
-    st.write("#### Próximos Pasos Sugeridos:")
-    st.write("1. **Revisión de Procesos:** Analizar la distribución de tareas en las áreas marcadas en rojo.")
-    st.write("2. **Protocolos de Desconexión:** Fortalecer la barrera entre el trabajo y la vida personal para desactivar loops de rumiación.")
-    st.write("3. **Capacitación Focalizada:** Entrenar en herramientas específicas de gestión neuro-cognitiva basadas en estos resultados.")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.write("### Conclusión y Hoja de Ruta")
+    if exig >= 3.5 and loop >= 3.5:
+        st.error(conclusion)
+    elif exig >= 3.5:
+        st.warning(conclusion)
+    else:
+        st.success(conclusion)
+
+    # Preparación del cuerpo del correo
+    resumen_texto = f"Reporte ASO - Organización: {st.session_state.organizacion}\n\n"
+    resumen_texto += f"Conclusión: {conclusion}\n\nResultados:\n"
+    for k, v in promedios.items():
+        resumen_texto += f"- {k}: {round(v, 2)}\n"
+    
+    subject = f"Reporte Auditoría ASO - {st.session_state.organizacion}"
+    body = urllib.parse.quote(resumen_texto)
+    mailto_url = f"mailto:psclaudiochamond@gmail.com?subject={urllib.parse.quote(subject)}&body={body}"
+
+    st.markdown(f"""
+        <a href="{mailto_url}" target="_blank" style="text-decoration: none;">
+            <div style="background-color: #3b82f6; color: white; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold;">
+                Enviar reporte al correo: psclaudiochamond@gmail.com
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
 
     if st.button("Reiniciar Sistema"):
         st.session_state.respuestas = {}
         st.session_state.paso = 'landing'
+        st.session_state.organizacion = ""
         st.rerun()
