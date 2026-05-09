@@ -11,56 +11,43 @@ st.markdown("""
     
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcfcfd; }
     
-    /* Contenedor de Pregunta - Máxima Legibilidad */
+    /* Contenedor de Pregunta */
     .main-card {
         background-color: white;
-        padding: 50px;
+        padding: 40px;
         border-radius: 30px;
         border: 1px solid #f1f5f9;
         box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
-        margin-bottom: 30px;
+        margin-bottom: 20px;
     }
     
-    .question-number {
-        color: #3b82f6;
-        font-weight: 800;
-        font-size: 1.2rem;
-        margin-bottom: 5px;
-    }
+    .question-number { color: #3b82f6; font-weight: 800; font-size: 1.1rem; margin-bottom: 5px; }
+    .question-text { font-size: 2.2rem; font-weight: 700; color: #0f172a; line-height: 1.2; margin-bottom: 30px; }
 
-    .question-text {
-        font-size: 2.8rem; /* Tamaño aumentado para legibilidad */
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.1;
-        margin-bottom: 40px;
-    }
-    
-    /* Estilo de las opciones de respuesta */
+    /* Alternativas Responsive: Botones Verticales Grandes */
     div.stRadio > div {
-        gap: 15px;
+        flex-direction: column !important; /* Organización vertical sencilla y responsive */
+        gap: 12px;
     }
     
     label[data-baseweb="radio"] {
-        background-color: #f8fafc;
-        padding: 20px 30px;
-        border-radius: 15px;
-        border: 2px solid #f1f5f9;
-        font-size: 1.4rem !important; /* Respuestas más grandes */
-        transition: all 0.3s;
+        background-color: #ffffff;
+        padding: 22px 25px !important;
+        border-radius: 18px !important;
+        border: 2px solid #f1f5f9 !important;
+        width: 100%; /* Ocupa todo el ancho en cel y pc */
+        transition: all 0.2s ease;
     }
 
     label[data-baseweb="radio"]:hover {
-        border-color: #3b82f6;
-        background-color: #eff6ff;
+        border-color: #3b82f6 !important;
+        background-color: #f0f7ff !important;
     }
 
-    .landing-title {
-        font-size: 3.8rem;
-        font-weight: 800;
-        color: #1e3a8a;
-        letter-spacing: -0.04em;
-    }
+    /* Ocultar el círculo nativo del radio para que parezca un botón */
+    div[data-testid="stMarkdownContainer"] p { font-size: 1.3rem !important; font-weight: 600; }
+    
+    .landing-title { font-size: 3.5rem; font-weight: 800; color: #1e3a8a; letter-spacing: -0.04em; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -83,7 +70,6 @@ dimensiones = {
     "Loops Neuropsicológicos": {"rango": range(41, 51), "inv": []}
 }
 
-# Texto de las 50 preguntas
 preguntas_texto = {
     1: "Siento que la velocidad exigida en mis tareas supera habitualmente mi capacidad de respuesta.",
     2: "La distribución de mis labores suele ser irregular, generando 'cuellos de botella'.",
@@ -141,23 +127,20 @@ preguntas_texto = {
 if 'paso' not in st.session_state: st.session_state.paso = 'landing'
 if 'respuestas' not in st.session_state: st.session_state.respuestas = {}
 
-# --- 1. LANDING PAGE MEJORADA ---
+# --- 1. LANDING PAGE ---
 if st.session_state.paso == 'landing':
     st.markdown('<h1 class="landing-title">Auditoría ASO Master</h1>', unsafe_allow_html=True)
-    
     col_l, col_r = st.columns([1.5, 1], gap="large")
-    
     with col_l:
         st.markdown('<div class="main-card">', unsafe_allow_html=True)
         st.markdown("### ¿Para qué sirve esta evaluación?")
         st.write("""
-        Esta herramienta busca entender cómo la forma en que está organizado su trabajo diario influye en su energía y bienestar. 
+        Esta herramienta busca entender cómo la forma en que está organizado su trabajo diario influye en su energía y bienestar.
         El objetivo no es evaluarlo a usted personalmente, sino identificar bloqueos en el diseño del sistema que puedan estar 
         generando cansancio excesivo o dificultando su labor. Al responder, nos ayuda a proponer mejoras concretas que faciliten 
         su día a día, restauren la productividad y protejan su salud mental.
         """)
         st.markdown('</div>', unsafe_allow_html=True)
-
     with col_r:
         st.markdown('<div class="main-card">', unsafe_allow_html=True)
         st.markdown("### Instrucciones")
@@ -168,17 +151,16 @@ if st.session_state.paso == 'landing':
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. CUESTIONARIO DE ALTA LEGIBILIDAD ---
+# --- 2. CUESTIONARIO VERTICAL RESPONSIVE ---
 elif st.session_state.paso == 'evaluando':
     idx = len(st.session_state.respuestas) + 1
-    
     if idx <= 50:
         st.progress(idx / 50)
-        
         st.markdown('<div class="main-card">', unsafe_allow_html=True)
         st.markdown(f'<p class="question-number">Pregunta {idx} de 50</p>', unsafe_allow_html=True)
         st.markdown(f'<p class="question-text">{preguntas_texto[idx]}</p>', unsafe_allow_html=True)
         
+        # Radio vertical automático para máxima compatibilidad móvil
         res = st.radio(
             "Su nivel de acuerdo:",
             options=[5, 4, 3, 2, 1],
@@ -199,7 +181,6 @@ elif st.session_state.paso == 'evaluando':
 elif st.session_state.paso == 'reporte':
     st.header("📊 Informe Integral de Salud Organizacional")
     
-    # Procesamiento de Datos
     promedios = {}
     for nom, info in dimensiones.items():
         vals = [st.session_state.respuestas[i] for i in info["rango"]]
@@ -210,7 +191,6 @@ elif st.session_state.paso == 'reporte':
                         "Estado": "RIESGO 🔴" if v >= 3.5 else "ESTABLE 🟢"} 
                        for k, v in promedios.items()])
 
-    # Visualización
     col_chart, col_info = st.columns([1.2, 1])
     with col_chart:
         fig = px.line_polar(df, r='Puntaje', theta='Dimensión', line_close=True, range_r=[0,5],
@@ -226,7 +206,6 @@ elif st.session_state.paso == 'reporte':
 
     st.divider()
 
-    # --- REPORTE DETALLADO UNIFICADO ---
     st.markdown('<div class="main-card">', unsafe_allow_html=True)
     st.write("## Análisis Detallado de Resultados")
     st.write("Este informe integra la visión técnica y personal para comprender la dinámica de trabajo actual.")
@@ -235,7 +214,6 @@ elif st.session_state.paso == 'reporte':
         with st.expander(f"{row['Dimensión']} ({row['Estado']})", expanded=True):
             st.write(f"**¿Qué evalúa?:** {row['Definición']}")
             puntaje = row['Puntaje']
-            
             if puntaje >= 3.5:
                 st.error(f"Puntaje: {puntaje}. Se observa un desequilibrio que puede estar afectando el rendimiento y la vitalidad.")
             else:
@@ -243,7 +221,6 @@ elif st.session_state.paso == 'reporte':
 
     st.divider()
     
-    # Hipótesis y Plan de Acción Unificado
     st.write("### Conclusión y Hoja de Ruta")
     exig = promedios["Exigencias Psicológicas"]
     loop = promedios["Loops Neuropsicológicos"]
