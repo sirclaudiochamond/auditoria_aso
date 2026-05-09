@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# --- DISEÑO Y ARQUITECTURA VISUAL ---
-st.set_page_config(page_title="ASO Master - Diagnóstico de Precisión", layout="wide")
+# --- CONFIGURACIÓN E INTERFAZ VISUAL ---
+st.set_page_config(page_title="ASO Master - Auditoría de Salud", layout="wide")
 
 st.markdown("""
     <style>
@@ -11,54 +11,69 @@ st.markdown("""
     
     html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fcfcfd; }
     
-    /* Contenedores Principales */
+    /* Contenedor de Pregunta - Máxima Legibilidad */
     .main-card {
         background-color: white;
-        padding: 40px;
-        border-radius: 28px;
+        padding: 50px;
+        border-radius: 30px;
         border: 1px solid #f1f5f9;
-        box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.03);
-        margin-bottom: 25px;
-    }
-    
-    .question-text {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.2;
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05);
         margin-bottom: 30px;
     }
     
-    .section-label {
+    .question-number {
         color: #3b82f6;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
         font-weight: 800;
-        font-size: 0.85rem;
-        margin-bottom: 10px;
+        font-size: 1.2rem;
+        margin-bottom: 5px;
+    }
+
+    .question-text {
+        font-size: 2.8rem; /* Tamaño aumentado para legibilidad */
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.1;
+        margin-bottom: 40px;
+    }
+    
+    /* Estilo de las opciones de respuesta */
+    div.stRadio > div {
+        gap: 15px;
+    }
+    
+    label[data-baseweb="radio"] {
+        background-color: #f8fafc;
+        padding: 20px 30px;
+        border-radius: 15px;
+        border: 2px solid #f1f5f9;
+        font-size: 1.4rem !important; /* Respuestas más grandes */
+        transition: all 0.3s;
+    }
+
+    label[data-baseweb="radio"]:hover {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
     }
 
     .landing-title {
-        font-size: 3.5rem;
+        font-size: 3.8rem;
         font-weight: 800;
         color: #1e3a8a;
-        letter-spacing: -0.03em;
-        line-height: 1;
-    }
-    
-    /* Botones y Radio personalizados */
-    .stButton>button {
-        border-radius: 15px;
-        padding: 20px;
-        font-weight: 700;
-        background-color: #1e3a8a;
-        color: white;
-        border: none;
+        letter-spacing: -0.04em;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- MOTOR DE DATOS (50 ÍTEMS) ---
+# --- DEFINICIONES Y METADATOS ---
+definiciones = {
+    "Exigencias Psicológicas": "Mide la presión de tiempo, la velocidad requerida y el volumen de tareas que deben procesarse simultáneamente.",
+    "Control y Autonomía": "Evalúa el margen de decisión que tiene sobre su agenda y la posibilidad de aplicar sus conocimientos en su puesto.",
+    "Apoyo Social y Liderazgo": "Analiza la calidad de la relación con superiores y compañeros, y el respaldo técnico que recibe ante problemas.",
+    "Recompensa y Sentido": "Refleja el reconocimiento recibido y si siente que su labor tiene un propósito alineado con sus valores.",
+    "Vida Personal": "Identifica si el trabajo interfiere con sus periodos de descanso o si permite una desconexión mental efectiva.",
+    "Loops Neuropsicológicos": "Detecta círculos viciosos de cansancio mental donde el esfuerzo no genera resultados, provocando saturación cognitiva."
+}
+
 dimensiones = {
     "Exigencias Psicológicas": {"rango": range(1, 9), "inv": []},
     "Control y Autonomía": {"rango": range(9, 17), "inv": range(9, 17)},
@@ -68,6 +83,7 @@ dimensiones = {
     "Loops Neuropsicológicos": {"rango": range(41, 51), "inv": []}
 }
 
+# Texto de las 50 preguntas
 preguntas_texto = {
     1: "Siento que la velocidad exigida en mis tareas supera habitualmente mi capacidad de respuesta.",
     2: "La distribución de mis labores suele ser irregular, generando 'cuellos de botella'.",
@@ -121,123 +137,131 @@ preguntas_texto = {
     50: "¿Te sientes emocionalmente agotado antes de interactuar con colegas?"
 }
 
-# --- NAVEGACIÓN ---
+# --- ESTADO DE SESIÓN ---
 if 'paso' not in st.session_state: st.session_state.paso = 'landing'
 if 'respuestas' not in st.session_state: st.session_state.respuestas = {}
 
-# --- 1. LANDING PAGE ---
+# --- 1. LANDING PAGE MEJORADA ---
 if st.session_state.paso == 'landing':
-    st.markdown('<h1 class="landing-title">ASO Master</h1>', unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<h1 class="landing-title">Auditoría ASO Master</h1>', unsafe_allow_html=True)
     
-    col_l, col_r = st.columns([1.2, 1], gap="large")
+    col_l, col_r = st.columns([1.5, 1], gap="large")
     
     with col_l:
         st.markdown('<div class="main-card">', unsafe_allow_html=True)
-        st.markdown("### El Modelo ASO")
+        st.markdown("### ¿Para qué sirve esta evaluación?")
         st.write("""
-        El Modelo ASO tiene como objetivo detectar los fallos invisibles en el diseño del trabajo que agotan 
-        la energía de los equipos. A través de este diagnóstico, obtendrá un mapa de precisión sobre los riesgos 
-        neuro-sistémicos de la organización, permitiendo implementar soluciones quirúrgicas que restauran la 
-        productividad y protegen la salud mental de los colaboradores.
+        Esta herramienta busca entender cómo la forma en que está organizado su trabajo diario influye en su energía y bienestar. 
+        El objetivo no es evaluarlo a usted personalmente, sino identificar bloqueos en el diseño del sistema que puedan estar 
+        generando cansancio excesivo o dificultando su labor. Al responder, nos ayuda a proponer mejoras concretas que faciliten 
+        su día a día, restauren la productividad y protejan su salud mental.
         """)
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_r:
         st.markdown('<div class="main-card">', unsafe_allow_html=True)
         st.markdown("### Instrucciones")
-        st.write("Responda con total sinceridad técnica basándose en su realidad operativa actual. La escala va de 1 (Nada de acuerdo) a 5 (Totalmente de acuerdo).")
-        if st.button("Comenzar Evaluación", use_container_width=True):
+        st.write("- Elija la opción que mejor refleje su realidad operativa actual.")
+        st.write("- Sea sincero: sus respuestas son la base para proponer cambios reales.")
+        if st.button("Comenzar Evaluación", use_container_width=True, type="primary"):
             st.session_state.paso = 'evaluando'
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 2. EVALUACIÓN DINÁMICA ---
+# --- 2. CUESTIONARIO DE ALTA LEGIBILIDAD ---
 elif st.session_state.paso == 'evaluando':
     idx = len(st.session_state.respuestas) + 1
     
     if idx <= 50:
         st.progress(idx / 50)
         
-        # Identificar Dimensión
-        dim_actual = next(nom for nom, info in dimensiones.items() if idx in info["rango"])
-        
-        st.markdown(f'<p class="section-label">{dim_actual}</p>', unsafe_allow_html=True)
-        
         st.markdown('<div class="main-card">', unsafe_allow_html=True)
+        st.markdown(f'<p class="question-number">Pregunta {idx} de 50</p>', unsafe_allow_html=True)
         st.markdown(f'<p class="question-text">{preguntas_texto[idx]}</p>', unsafe_allow_html=True)
         
         res = st.radio(
-            "Seleccione su respuesta:",
-            options=[1, 2, 3, 4, 5],
-            format_func=lambda x: {1:"🔴 Nada de acuerdo", 2:"🟠 En desacuerdo", 3:"🟡 Neutral", 4:"🔵 De acuerdo", 5:"🟢 Totalmente de acuerdo"}[x],
-            horizontal=True,
-            key=f"radio_{idx}"
+            "Su nivel de acuerdo:",
+            options=[5, 4, 3, 2, 1],
+            format_func=lambda x: {5:"Totalmente de acuerdo", 4:"De acuerdo", 3:"Neutral", 2:"En desacuerdo", 1:"Totalmente en desacuerdo"}[x],
+            key=f"radio_{idx}",
+            label_visibility="collapsed"
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
-        if st.button("Confirmar y Continuar", use_container_width=True):
+        if st.button("Siguiente", use_container_width=True):
             st.session_state.respuestas[idx] = res
             st.rerun()
     else:
         st.session_state.paso = 'reporte'
         st.rerun()
 
-# --- 3. REPORTE DE ALTA VISIBILIDAD ---
+# --- 3. REPORTE INTEGRAL UNIFICADO ---
 elif st.session_state.paso == 'reporte':
-    st.title("📊 Reporte Diagnóstico ASO")
+    st.header("📊 Informe Integral de Salud Organizacional")
     
-    # Procesamiento con Lógica de Inversión[cite: 1]
+    # Procesamiento de Datos
     promedios = {}
     for nom, info in dimensiones.items():
         vals = [st.session_state.respuestas[i] for i in info["rango"]]
         vals_adj = [6 - v if i in info["inv"] else v for i, v in zip(info["rango"], vals)]
         promedios[nom] = sum(vals_adj) / len(vals_adj)
 
-    df = pd.DataFrame([{"Dimensión": k, "Puntaje": round(v, 2), 
+    df = pd.DataFrame([{"Dimensión": k, "Definición": definiciones[k], "Puntaje": round(v, 2), 
                         "Estado": "RIESGO 🔴" if v >= 3.5 else "ESTABLE 🟢"} 
                        for k, v in promedios.items()])
 
-    c1, c2 = st.columns([1, 1.2], gap="large")
-    
-    with c1:
-        st.markdown('<div class="main-card">', unsafe_allow_html=True)
-        st.write("### Resumen de Dimensiones")
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    with c2:
+    # Visualización
+    col_chart, col_info = st.columns([1.2, 1])
+    with col_chart:
         fig = px.line_polar(df, r='Puntaje', theta='Dimensión', line_close=True, range_r=[0,5],
-                            template="plotly_white")
+                            template="plotly_white", title="Ecosistema Sistémico")
         fig.update_traces(fill='toself', line_color='#1e3a8a', fillcolor='rgba(30, 58, 138, 0.2)')
         st.plotly_chart(fig, use_container_width=True)
+    
+    with col_info:
+        st.markdown('<div class="main-card">', unsafe_allow_html=True)
+        st.write("### Resumen de Estado")
+        st.dataframe(df[["Dimensión", "Puntaje", "Estado"]], use_container_width=True, hide_index=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
+
+    # --- REPORTE DETALLADO UNIFICADO ---
+    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    st.write("## Análisis Detallado de Resultados")
+    st.write("Este informe integra la visión técnica y personal para comprender la dinámica de trabajo actual.")
+
+    for index, row in df.iterrows():
+        with st.expander(f"{row['Dimensión']} ({row['Estado']})", expanded=True):
+            st.write(f"**¿Qué evalúa?:** {row['Definición']}")
+            puntaje = row['Puntaje']
+            
+            if puntaje >= 3.5:
+                st.error(f"Puntaje: {puntaje}. Se observa un desequilibrio que puede estar afectando el rendimiento y la vitalidad.")
+            else:
+                st.success(f"Puntaje: {puntaje}. Esta área se encuentra en equilibrio dinámico.")
 
     st.divider()
     
-    # Feedback Dual
-    eval_col, colab_col = st.columns(2)
+    # Hipótesis y Plan de Acción Unificado
+    st.write("### Conclusión y Hoja de Ruta")
+    exig = promedios["Exigencias Psicológicas"]
+    loop = promedios["Loops Neuropsicológicos"]
     
-    with eval_col:
-        st.markdown('<div class="main-card">', unsafe_allow_html=True)
-        st.write("#### 🔍 Análisis del Evaluador")
-        exig = promedios["Exigencias Psicológicas"]
-        loop = promedios["Loops Neuropsicológicos"]
-        if exig >= 3.5 and loop >= 3.5:
-            st.error("Hipótesis: Saturación Sistémica. El colaborador presenta un colapso en la capacidad de recuperación neuro-cognitiva por exceso de demanda.")
-        else:
-            st.success("Estado: Equilibrio Operativo. No se detectan bloqueos críticos en la infraestructura de trabajo.")
-        st.markdown('</div>', unsafe_allow_html=True)
+    if exig >= 3.5 and loop >= 3.5:
+        st.error("**Situación Detectada: Saturación Sistémica.** El volumen de tareas ha sobrepasado la capacidad de recuperación natural. Esto genera 'Loops' de cansancio donde, a pesar del esfuerzo, la sensación de avance disminuye.")
+    elif exig >= 3.5:
+        st.warning("**Situación Detectada: Sobrecarga Operativa.** La demanda es alta, pero el sistema aún no colapsa. Es el momento preventivo ideal.")
+    else:
+        st.success("**Situación Detectada: Estabilidad Operativa.** El diseño de tareas es coherente con la capacidad instalada del equipo.")
 
-    with colab_col:
-        st.markdown('<div class="main-card">', unsafe_allow_html=True)
-        st.write("#### 🧠 Estado del Evaluado")
-        if promedios["Loops Neuropsicológicos"] >= 3.5:
-            st.warning("Tu sistema nervioso está operando en modo alerta constante. Los 'Loops' detectados indican que el trabajo está invadiendo tu capacidad de recuperación mental.")
-        else:
-            st.success("Tu nivel de vitalidad y capacidad de desconexión se mantienen dentro de márgenes saludables.")
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.write("#### Próximos Pasos Sugeridos:")
+    st.write("1. **Revisión de Procesos:** Analizar la distribución de tareas en las áreas marcadas en rojo.")
+    st.write("2. **Protocolos de Desconexión:** Fortalecer la barrera entre el trabajo y la vida personal para desactivar loops de rumiación.")
+    st.write("3. **Capacitación Focalizada:** Entrenar en herramientas específicas de gestión neuro-cognitiva basadas en estos resultados.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("Reiniciar Aplicación"):
+    if st.button("Reiniciar Sistema"):
         st.session_state.respuestas = {}
         st.session_state.paso = 'landing'
         st.rerun()
